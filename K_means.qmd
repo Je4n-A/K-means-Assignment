@@ -1,0 +1,19 @@
+---
+title: "K-Means Assignment"
+author: "Jean Alvarez"
+date: today
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    theme: cosmo
+  revealjs:
+    embed-resources: true
+    transition: zoom
+    toc: true
+    toc-title: "Overview"
+    scrollable: true
+---
+
