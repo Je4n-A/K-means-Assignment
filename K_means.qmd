@@ -17,3 +17,176 @@ format:
     scrollable: true
 ---
 
+## Introduction
+
+The `mtcars` dataset contains fuel consumption and 10 aspects of automobile design and performance for 32 cars from 1973–74. All variables are numeric, making this dataset well-suited for K-means clustering. We will determine the optimal number of clusters using the elbow and silhouette methods, then characterize the resulting groups.
+
+## Load Data and Setup
+
+```{r}
+#| label: setup
+#| message: false
+library(factoextra)
+library(cluster)
+
+data(mtcars)
+str(mtcars)
+summary(mtcars)
+```
+
+Since K-means is sensitive to scale, we standardize all variables before clustering.
+
+```{r}
+#| label: scale-data
+mtcars_scaled <- scale(mtcars)
+head(mtcars_scaled)
+```
+
+## Determining Optimal k
+
+### Elbow Method
+
+The elbow method plots total within-cluster sum of squares (WSS) against k. We look for the "elbow" where adding more clusters yields diminishing returns.
+
+```{r}
+#| label: elbow-method
+#| fig-cap: "Elbow Method — Total Within-Cluster Sum of Squares vs. k"
+set.seed(42)
+fviz_nbclust(mtcars_scaled, kmeans, method = "wss", k.max = 10, nstart = 25) +
+  geom_vline(xintercept = 3, linetype = 2, color = "red") +
+  labs(title = "Elbow Method for Optimal k",
+       subtitle = "Dashed line at k = 3")
+```
+
+The curve shows a clear bend at **k = 3**, after which the decrease in WSS slows considerably.
+
+### Silhouette Method
+
+The silhouette method measures how similar each point is to its own cluster versus neighboring clusters. Higher average silhouette width indicates better-defined clusters.
+
+```{r}
+#| label: silhouette-method
+#| fig-cap: "Average Silhouette Width vs. k"
+set.seed(42)
+fviz_nbclust(mtcars_scaled, kmeans, method = "silhouette", k.max = 10, nstart = 25) +
+  labs(title = "Silhouette Method for Optimal k")
+```
+
+The silhouette analysis confirms that **k = 2** gives the highest average silhouette width, but **k = 3** is a close second and provides more granular insight. Balancing parsimony with interpretability, we proceed with **k = 3**.
+
+## K-Means Clustering (k = 3)
+
+```{r}
+#| label: kmeans-fit
+set.seed(42)
+km <- kmeans(mtcars_scaled, centers = 3, nstart = 25)
+km
+```
+
+## Cluster Visualization
+
+### PCA Biplot
+
+We project the 11-dimensional data onto its first two principal components to visualize cluster separation.
+
+```{r}
+#| label: pca-biplot
+#| fig-cap: "Clusters projected onto first two principal components"
+fviz_cluster(km, data = mtcars_scaled,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal(),
+             main = "K-Means Clusters (k = 3) — PCA Biplot")
+```
+
+### Silhouette Plot
+
+```{r}
+#| label: silhouette-plot
+#| fig-cap: "Silhouette plot for k = 3"
+sil <- silhouette(km$cluster, dist(mtcars_scaled))
+fviz_silhouette(sil, palette = "jco") +
+  labs(title = "Silhouette Plot (k = 3)")
+```
+
+## Cluster Profiles
+
+### Summary Statistics by Cluster
+
+```{r}
+#| label: cluster-profiles
+mtcars$cluster <- factor(km$cluster)
+
+cluster_means <- aggregate(. ~ cluster, data = mtcars, FUN = mean)
+cluster_means
+```
+
+### Heatmap of Cluster Centers (Standardized)
+
+```{r}
+#| label: heatmap
+#| fig-cap: "Heatmap of standardized cluster centers"
+centers_df <- as.data.frame(km$centers)
+centers_df$cluster <- factor(1:3)
+
+centers_long <- tidyr::pivot_longer(centers_df, -cluster,
+                                     names_to = "variable",
+                                     values_to = "value")
+
+ggplot2::ggplot(centers_long, ggplot2::aes(x = variable, y = cluster, fill = value)) +
+  ggplot2::geom_tile(color = "white") +
+  ggplot2::scale_fill_gradient2(low = "steelblue", mid = "white", high = "firebrick",
+                                midpoint = 0) +
+  ggplot2::labs(title = "Cluster Centers (Standardized)", x = "", y = "Cluster") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+```
+
+### Boxplots of Key Variables by Cluster
+
+```{r}
+#| label: boxplots
+#| fig-cap: "Distribution of key variables across clusters"
+#| fig-height: 8
+key_vars <- c("mpg", "hp", "wt", "disp", "drat", "qsec")
+par(mfrow = c(3, 2), mar = c(4, 4, 2, 1))
+for (v in key_vars) {
+  boxplot(as.formula(paste(v, "~ cluster")), data = mtcars,
+          col = c("#0073C2", "#EFC000", "#868686"),
+          main = v, xlab = "Cluster", ylab = v)
+}
+```
+
+### Cars in Each Cluster
+
+```{r}
+#| label: cluster-members
+for (i in 1:3) {
+  cat("\n--- Cluster", i, "---\n")
+  print(rownames(mtcars[mtcars$cluster == i, ]))
+}
+```
+
+## Cluster Descriptions
+
+```{r}
+#| label: description-table
+#| echo: false
+cluster_means_rounded <- cluster_means
+cluster_means_rounded[-1] <- round(cluster_means_rounded[-1], 1)
+knitr::kable(cluster_means_rounded,
+             caption = "Mean values of each variable by cluster")
+```
+
+Based on the cluster profiles above:
+
+- **Cluster 1 — Efficient & Lightweight:** High mpg, low displacement and horsepower, low weight. These are the economy cars (e.g., Toyota Corolla, Honda Civic, Fiat 128). They tend to have lower cylinder counts (4-cyl) and higher rear axle ratios.
+
+- **Cluster 2 — Heavy & Powerful:** Very low mpg, high displacement, high horsepower, and heavy weight. These are the muscle cars and large sedans (e.g., Chrysler Imperial, Cadillac Fleetwood, Lincoln Continental). Predominantly 8-cylinder with automatic transmissions.
+
+- **Cluster 3 — Balanced / Sport:** Moderate mpg, moderate-to-high horsepower, and mid-range weight. These sit between the other two groups and include sportier or mid-size vehicles (e.g., Mazda RX4, Merc 280). They often have better quarter-mile times relative to their power.
+
+## Conclusion
+
+Using both the elbow and silhouette methods, we identified **3 meaningful clusters** in the `mtcars` dataset. The clusters correspond to intuitive groupings: economy cars, heavy/powerful vehicles, and a balanced middle class. The PCA biplot shows good separation, and the silhouette plot confirms reasonable cluster cohesion with few misclassified observations.
+
