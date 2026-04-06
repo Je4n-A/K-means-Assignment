@@ -2230,7 +2230,7 @@ vertical-align: -.125em;
   </ul></li>
   <li><a href="#shutdown-h2o" id="toc-shutdown-h2o" class="nav-link" data-scroll-target="#shutdown-h2o">Shutdown H2O</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="KMeans_Assignment (1).html"><i class="bi bi-file-slides"></i>RevealJS</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="KMeans_Assignment_Done.html"><i class="bi bi-file-slides"></i>RevealJS</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -2328,19 +2328,19 @@ Valiant           18.1   6  225 105 2.76 3.460 20.22  1  0    3    1</code></pre
 H2O is not running yet, starting it now...
 
 Note:  In case of errors look at the following log files:
-    C:\Users\jeanm\AppData\Local\Temp\RtmpARs3wF\file47141fb62b1b/h2o_jeanm_started_from_r.out
-    C:\Users\jeanm\AppData\Local\Temp\RtmpARs3wF\file47141007947/h2o_jeanm_started_from_r.err
+    C:\Users\jeanm\AppData\Local\Temp\RtmpEL4aKV\file60d4155b75f/h2o_jeanm_started_from_r.out
+    C:\Users\jeanm\AppData\Local\Temp\RtmpEL4aKV\file60d41e9b4b3d/h2o_jeanm_started_from_r.err
 
 
 Starting H2O JVM and connecting:  Connection successful!
 
 R is connected to the H2O cluster: 
-    H2O cluster uptime:         2 seconds 375 milliseconds 
+    H2O cluster uptime:         2 seconds 368 milliseconds 
     H2O cluster timezone:       America/New_York 
     H2O data parsing timezone:  UTC 
     H2O cluster version:        3.44.0.3 
     H2O cluster version age:    2 years, 3 months and 16 days 
-    H2O cluster name:           H2O_started_from_R_jeanm_fpd929 
+    H2O cluster name:           H2O_started_from_R_jeanm_rwb294 
     H2O cluster total nodes:    1 
     H2O cluster total memory:   7.75 GB 
     H2O cluster total cores:    24 
@@ -2458,7 +2458,7 @@ Please download and install the latest version from: https://h2o-release.s3.amaz
 </div>
 </div>
 </div>
-<p>The silhouette method confirms <strong>K = 2</strong> has the highest average silhouette score, but <strong>K = 3</strong> also performs well. Combining both methods, <strong>K = 3</strong> provides a good balance between cluster compactness and meaningful separation, so we proceed with K = 3.</p>
+<p>The silhouette method indicates that K = 2 has the highest average silhouette score, suggesting the strongest overall separation. However, the elbow plot shows a meaningful bend around K = 3, and using three clusters produces a more interpretable grouping of the cars into economy, mid-range, and performance/heavy vehicles. Therefore, K = 3 was selected as the final number of clusters.</p>
 </section>
 </section>
 <section id="part-2-cluster-analysis-with-k-3" class="level2">
@@ -2677,9 +2677,9 @@ Please download and install the latest version from: https://h2o-release.s3.amaz
 </div>
 <p><strong>Cluster descriptions:</strong></p>
 <ul>
-<li><strong>Cluster 0</strong>: Economy cars — high mpg, low displacement, fewer cylinders (4-cyl), and lightweight. Examples include cars like the Honda Civic, Toyota Corolla, and Fiat 128.</li>
-<li><strong>Cluster 1</strong>: Performance / heavy vehicles — low mpg, high horsepower, large displacement (8-cyl), and heavy weight. These include muscle cars and luxury sedans like the Cadillac Fleetwood, Chrysler Imperial, and Camaro Z28.</li>
-<li><strong>Cluster 2</strong>: Mid-range vehicles — moderate mpg, horsepower, and weight, typically 6-cylinder. Examples include the Mazda RX4, Merc 280, and Hornet 4 Drive.</li>
+<li><p><strong>Cluster 0</strong> represents economy-oriented cars. These vehicles have the <strong>highest fuel efficiency (mpg)</strong>, along with <strong>lower weight, lower horsepower, lower displacement, and fewer cylinders</strong>, which suggests smaller and more practical cars. This cluster is dominated by compact 4-cylinder vehicles such as the Honda Civic, Toyota Corolla, and Fiat 128.</p></li>
+<li><p><strong>Cluster 1</strong> represents large performance-oriented or heavy-duty vehicles. These cars show <strong>low mpg</strong>, but they also have the <strong>highest horsepower, largest engine displacement, highest weight, and the greatest number of cylinders</strong>, which is consistent with powerful 8-cylinder cars. This group includes vehicles such as the Cadillac Fleetwood, Chrysler Imperial, and Camaro Z28.</p></li>
+<li><p><strong>Cluster 2</strong> captures mid-range vehicles that fall between the other two groups. These cars have <strong>moderate fuel economy, moderate weight, moderate horsepower, and medium engine size</strong>, making them less extreme than the economy or performance clusters. Many of these vehicles are 6-cylinder models, such as the Mazda RX4, Merc 280, and Hornet 4 Drive.</p></li>
 </ul>
 </section>
 </section>
