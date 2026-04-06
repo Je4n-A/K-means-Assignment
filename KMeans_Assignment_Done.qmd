@@ -1,0 +1,302 @@
+---
+title: "K-Means Assignment"
+author: "Jean Alvarez"
+date: today
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-title: "Table of Contents"
+    toc-depth: 3
+    theme: cosmo
+  revealjs:
+    embed-resources: true
+    transition: zoom
+    toc: true
+    toc-title: "Overview"
+    scrollable: true
+---
+
+## Setup
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(h2o)
+library(cluster)
+library(GGally)
+
+# Load data
+data(mtcars)
+```
+
+## Explore the Data
+
+```{r}
+head(mtcars)
+str(mtcars)
+```
+
+All variables in `mtcars` are numeric, so we use all of them for clustering.
+
+```{r}
+#| fig-width: 10
+#| fig-height: 10
+#| message: false
+
+ggpairs(mtcars) +
+  theme_bw()
+```
+
+## Initialize H2O
+
+```{r}
+#| message: false
+
+h2o.init()
+h2o.no_progress()
+
+# Upload mtcars to H2O
+mtcars_h2o <- as.h2o(mtcars)
+
+# All column names (all numeric)
+features <- colnames(mtcars)
+```
+
+## Part 1: Elbow and Silhouette Methods
+
+### Elbow Method
+
+```{r}
+#| message: false
+
+get_inertia <- function(k, data = mtcars_h2o) {
+  km_model <- h2o.kmeans(
+    training_frame = data,
+    x = features,
+    k = k,
+    standardize = TRUE,
+    seed = 123
+  )
+  return(h2o.tot_withinss(km_model))
+}
+
+k_values <- 1:15
+
+elbow_results <- tibble(
+  K = k_values,
+  Inertia = map_dbl(k_values, get_inertia)
+)
+```
+
+```{r}
+elbow_results |>
+  ggplot(aes(x = K, y = Inertia)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous(breaks = k_values) +
+  labs(
+    title = "Elbow Method",
+    x = "Number of Clusters (K)",
+    y = "Total Within-Cluster Sum of Squares (Inertia)"
+  ) +
+  theme_bw()
+```
+
+The elbow plot shows a notable bend around **K = 3**, where the rate of decrease in inertia begins to flatten. This suggests that 3 clusters capture most of the meaningful structure in the data.
+
+### Silhouette Method
+
+```{r}
+#| message: false
+
+get_silhouette <- function(k) {
+  km_model <- h2o.kmeans(
+    training_frame = mtcars_h2o,
+    x = features,
+    k = k,
+    standardize = TRUE,
+    seed = 123
+  )
+
+  clusters <- as.vector(h2o.predict(km_model, mtcars_h2o))
+
+  dist_matrix <- mtcars |>
+    scale() |>
+    dist()
+
+  sil <- silhouette(clusters, dist_matrix)
+  return(mean(sil[, 3]))
+}
+
+silhouette_results <- tibble(
+  K = 2:15,
+  Avg_Silhouette = map_dbl(2:15, get_silhouette)
+)
+```
+
+```{r}
+silhouette_results |>
+  ggplot(aes(x = K, y = Avg_Silhouette)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous(breaks = 2:15) +
+  labs(
+    title = "Silhouette Method",
+    x = "Number of Clusters (K)",
+    y = "Average Silhouette Score"
+  ) +
+  theme_bw()
+```
+
+The silhouette method confirms **K = 2** has the highest average silhouette score, but **K = 3** also performs well. Combining both methods, **K = 3** provides a good balance between cluster compactness and meaningful separation, so we proceed with K = 3.
+
+## Part 2: Cluster Analysis with K = 3
+
+### Fit Final Model
+
+```{r}
+#| message: false
+
+final_model <- h2o.kmeans(
+  training_frame = mtcars_h2o,
+  x = features,
+  k = 3,
+  standardize = TRUE,
+  seed = 123
+)
+
+h2o.tot_withinss(final_model)
+```
+
+### Assign Clusters
+
+```{r}
+groups <- as.vector(h2o.predict(final_model, mtcars_h2o))
+
+mtcars_clustered <- mtcars |>
+  mutate(cluster = as.factor(groups))
+```
+
+### Cluster Membership
+
+```{r}
+mtcars_clustered |>
+  group_by(cluster) |>
+  summarize(n = n())
+```
+
+### Cars in Each Cluster
+
+```{r}
+mtcars_clustered |>
+  rownames_to_column("car") |>
+  group_by(cluster) |>
+  summarize(cars = paste(car, collapse = ", "))
+```
+
+### Cluster Profiles (Mean Values)
+
+```{r}
+cluster_means <- mtcars_clustered |>
+  group_by(cluster) |>
+  summarize(across(where(is.numeric), mean))
+
+cluster_means
+```
+
+### Visualization: Cluster Profiles
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+cluster_means |>
+  pivot_longer(-cluster) |>
+  ggplot(aes(x = cluster, y = value, fill = name)) +
+  geom_col(position = "dodge", width = 0.6) +
+  labs(
+    title = "Cluster Profiles (K = 3)",
+    x = "Cluster",
+    y = "Mean Value",
+    fill = "Variable"
+  ) +
+  theme_bw()
+```
+
+Because variables are on very different scales, let's also look at standardized profiles:
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+
+mtcars_clustered |>
+  mutate(across(where(is.numeric), scale)) |>
+  group_by(cluster) |>
+  summarize(across(where(is.numeric), mean)) |>
+  pivot_longer(-cluster) |>
+  ggplot(aes(x = name, y = value, fill = cluster)) +
+  geom_col(position = "dodge", width = 0.6) +
+  labs(
+    title = "Standardized Cluster Profiles (K = 3)",
+    x = "Variable",
+    y = "Standardized Mean",
+    fill = "Cluster"
+  ) +
+  coord_flip() +
+  theme_bw()
+```
+
+### Visualization: Scatterplots by Cluster
+
+```{r}
+#| fig-width: 8
+#| fig-height: 6
+
+mtcars_clustered |>
+  ggplot(aes(x = wt, y = mpg, color = cluster)) +
+  geom_point(size = 3) +
+  labs(
+    title = "MPG vs Weight by Cluster",
+    x = "Weight (1000 lbs)",
+    y = "Miles per Gallon"
+  ) +
+  theme_bw()
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 6
+
+mtcars_clustered |>
+  ggplot(aes(x = hp, y = mpg, color = cluster)) +
+  geom_point(size = 3) +
+  labs(
+    title = "MPG vs Horsepower by Cluster",
+    x = "Horsepower",
+    y = "Miles per Gallon"
+  ) +
+  theme_bw()
+```
+
+### Cluster Interpretation
+
+```{r}
+cluster_means |>
+  select(cluster, mpg, cyl, hp, wt, disp) |>
+  knitr::kable(digits = 1, caption = "Key Variables by Cluster")
+```
+
+**Cluster descriptions:**
+
+- **Cluster 0**: Economy cars — high mpg, low displacement, fewer cylinders (4-cyl), and lightweight. Examples include cars like the Honda Civic, Toyota Corolla, and Fiat 128.
+- **Cluster 1**: Performance / heavy vehicles — low mpg, high horsepower, large displacement (8-cyl), and heavy weight. These include muscle cars and luxury sedans like the Cadillac Fleetwood, Chrysler Imperial, and Camaro Z28.
+- **Cluster 2**: Mid-range vehicles — moderate mpg, horsepower, and weight, typically 6-cylinder. Examples include the Mazda RX4, Merc 280, and Hornet 4 Drive.
+
+## Shutdown H2O
+
+```{r}
+h2o.shutdown(prompt = FALSE)
+```
