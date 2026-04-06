@@ -151,7 +151,7 @@ silhouette_results |>
   theme_bw()
 ```
 
-The silhouette method confirms **K = 2** has the highest average silhouette score, but **K = 3** also performs well. Combining both methods, **K = 3** provides a good balance between cluster compactness and meaningful separation, so we proceed with K = 3.
+The silhouette method indicates that K = 2 has the highest average silhouette score, suggesting the strongest overall separation. However, the elbow plot shows a meaningful bend around K = 3, and using three clusters produces a more interpretable grouping of the cars into economy, mid-range, and performance/heavy vehicles. Therefore, K = 3 was selected as the final number of clusters.
 
 ## Part 2: Cluster Analysis with K = 3
 
@@ -291,9 +291,11 @@ cluster_means |>
 
 **Cluster descriptions:**
 
-- **Cluster 0**: Economy cars — high mpg, low displacement, fewer cylinders (4-cyl), and lightweight. Examples include cars like the Honda Civic, Toyota Corolla, and Fiat 128.
-- **Cluster 1**: Performance / heavy vehicles — low mpg, high horsepower, large displacement (8-cyl), and heavy weight. These include muscle cars and luxury sedans like the Cadillac Fleetwood, Chrysler Imperial, and Camaro Z28.
-- **Cluster 2**: Mid-range vehicles — moderate mpg, horsepower, and weight, typically 6-cylinder. Examples include the Mazda RX4, Merc 280, and Hornet 4 Drive.
+- **Cluster 0** represents economy-oriented cars. These vehicles have the **highest fuel efficiency (mpg)**, along with **lower weight, lower horsepower, lower displacement, and fewer cylinders**, which suggests smaller and more practical cars. This cluster is dominated by compact 4-cylinder vehicles such as the Honda Civic, Toyota Corolla, and Fiat 128.
+
+- **Cluster 1** represents large performance-oriented or heavy-duty vehicles. These cars show **low mpg**, but they also have the **highest horsepower, largest engine displacement, highest weight, and the greatest number of cylinders**, which is consistent with powerful 8-cylinder cars. This group includes vehicles such as the Cadillac Fleetwood, Chrysler Imperial, and Camaro Z28.
+
+- **Cluster 2** captures mid-range vehicles that fall between the other two groups. These cars have **moderate fuel economy, moderate weight, moderate horsepower, and medium engine size**, making them less extreme than the economy or performance clusters. Many of these vehicles are 6-cylinder models, such as the Mazda RX4, Merc 280, and Hornet 4 Drive.
 
 ## Shutdown H2O
 
